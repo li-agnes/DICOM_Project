@@ -8,6 +8,16 @@ from pydicom import uid
 
 
 def convert_edf_to_dicom(edf_file_path, dicom_file_path):
+    '''
+    Converts an EDF file to DICOM format by adding basic attributes.
+
+    Arguments:
+        edf_file_path (str): Path to the EDF file.
+        dicom_file_path (str): Path to save the output DICOM file.
+
+    Returns:
+        None
+    '''
     # Open the EDF file
     edf_file = pyedflib.EdfReader(edf_file_path)
 
@@ -62,6 +72,15 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
 
 
 def read_dicom_data(dicom_file_path):
+    '''
+    Prints parts of the metadata in the header to see if our new DICOM file works.
+
+    Arguments:
+        dicom_file_path (str): Path to the DICOM file.
+
+    Returns:
+        None
+    '''
     # Read the DICOM file
     ds = pydicom.dcmread(dicom_file_path)
 
@@ -86,9 +105,9 @@ def read_dicom_data(dicom_file_path):
         print("Channel Description:", channel_item.ChannelDescription)
     '''
 
-## Testing
-edf_file_path = "/Users/agnesli/Desktop/DICOM Project/chb01_01.edf"
-dicom_file_path = "/Users/agnesli/Desktop/DICOM Project/chb01_01.dcm"
+# Testing
+edf_file_path = "/Users/agnesli/Desktop/DICOM_Project/chb01_01.edf"
+dicom_file_path = "/Users/agnesli/Desktop/DICOM_Project/chb01_01.dcm"
 
 convert_edf_to_dicom(edf_file_path, dicom_file_path)
 read_dicom_data(dicom_file_path)
