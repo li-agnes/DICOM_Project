@@ -66,9 +66,11 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     ds.file_meta.MediaStorageSOPInstanceUID = pydicom.uid.generate_uid()
     ds.file_meta.TransferSyntaxUID = uid.ImplicitVRLittleEndian
 
+
     channel_source_seq = Sequence()
     for i in range(edf_file.signals_in_file):
         channel_source_item = Dataset()
+        # code sequence for the channel source
         channel_source_item.ChannelSourceCodeSequence = Sequence([
             Dataset(
                 CodeValue="EEG Leads",
@@ -77,6 +79,7 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
                 CodeMeaning="EEG Leads"
             )
         ])
+        # modifiers, which are additional specifications related to the channel source
         channel_source_item.ChannelSourceModifiersSequence = Sequence([
             Dataset(
                 CodeValue="Differential signal",
@@ -102,12 +105,9 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     ds.is_little_endian = True
     ds.is_implicit_VR = True
 
-    # Save the DICOM object to a file
-    ds.save_as(dicom_file_path)
-    print("Conversion complete.")
-
     # Save the DICOM object to a file with 'DICM' prefix in the header
     ds.save_as(dicom_file_path, write_like_original=False)
+    print("Conversion complete.")
 
 
 def read_dicom_data(dicom_file_path):
