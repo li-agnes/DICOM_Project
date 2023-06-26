@@ -5,6 +5,7 @@ from pydicom.sequence import Sequence
 from pydicom.dataset import FileDataset
 from pyedflib import highlevel
 from pydicom import uid
+from pydicom.errors import InvalidDicomError
 
 
 def convert_edf_to_dicom(edf_file_path, dicom_file_path):
@@ -29,7 +30,7 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     ds.PatientID = "123456"
     ds.StudyDescription = "EEG Study"
     ds.SeriesDescription = "EEG Series"
-    ds.Modality = "OT"  # "OT" for Other Modality, since DICOM doesn't have modality for EEGs
+    ds.Modality = "EEG"
     ds.Manufacturer = "Mobile App"
     ds.SoftwareVersions = "Your Software Version"
 
@@ -53,11 +54,49 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     # Assign the Sequence to SharedFunctionalGroupsSequence
     ds.SharedFunctionalGroupsSequence = shared_func_groups_seq
 
+    # Routine Scalp EEG specific attributes
+    ds.Modality = "EEG"
+    ds.WaveformBitsAllocated = 16
+    ds.WaveformSampleInterpretation = "SS"
+    ds.NumberOfWaveformChannels = len(edf_file.getSignalLabels())
+
     # Set the required attributes in the File Meta Information Header
     ds.file_meta = Dataset()
     ds.file_meta.MediaStorageSOPClassUID = uid.ExplicitVRLittleEndian
     ds.file_meta.MediaStorageSOPInstanceUID = pydicom.uid.generate_uid()
     ds.file_meta.TransferSyntaxUID = uid.ImplicitVRLittleEndian
+
+    channel_source_seq = Sequence()
+    for i in range(edf_file.signals_in_file):
+        channel_source_item = Dataset()
+        channel_source_item.ChannelSourceCodeSequence = Sequence([
+            Dataset(
+                CodeValue="EEG Leads",
+                CodingSchemeDesignator="CID 3030",
+                CodingSchemeVersion="",
+                CodeMeaning="EEG Leads"
+            )
+        ])
+        channel_source_item.ChannelSourceModifiersSequence = Sequence([
+            Dataset(
+                CodeValue="Differential signal",
+                CodingSchemeDesignator="CID 3240",
+                CodingSchemeVersion="",
+                CodeMeaning="Differential signal"
+            ),
+            Dataset(
+                CodeValue="EEG Leads",
+                CodingSchemeDesignator="CID 3030",
+                CodingSchemeVersion="",
+                CodeMeaning="EEG Leads"
+            )
+        ])
+
+    # Add the Channel Source and Channel Source Modifiers to the Sequence
+    channel_source_seq.append(channel_source_item)
+
+    # Set the Channel Source and Channel Source Modifiers
+    per_frame_func_groups_ds.ChannelSourceSequence = channel_source_seq
 
     # Set the necessary attributes for saving
     ds.is_little_endian = True
@@ -105,9 +144,27 @@ def read_dicom_data(dicom_file_path):
         print("Channel Description:", channel_item.ChannelDescription)
     '''
 
+
+def validate_dicom_file(dicom_file_path):
+    '''
+    Checks if the DICOM dataset conforms to the DICOM standard and verifies the 
+    integrity of the dataset structure
+
+    Arguments:
+        dicom_file_path (str): Path to the DICOM file.
+    '''
+
+    try:
+        pydicom.dcmread(dicom_file_path)
+        print("DICOM file is valid.")
+    except InvalidDicomError:
+        print("DICOM file is invalid.")
+
+
 # Testing
 edf_file_path = "/Users/agnesli/Desktop/DICOM_Project/chb01_01.edf"
 dicom_file_path = "/Users/agnesli/Desktop/DICOM_Project/chb01_01.dcm"
 
 convert_edf_to_dicom(edf_file_path, dicom_file_path)
 read_dicom_data(dicom_file_path)
+validate_dicom_file(dicom_file_path)
