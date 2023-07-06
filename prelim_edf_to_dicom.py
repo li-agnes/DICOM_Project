@@ -269,44 +269,52 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     # Pull from EDF Header and set the DICOM metadata
     header = edf_file.getHeader()
 
+
+    ds.PatientName = header['patientname']
+    ds.StudyDate = edf_file.getStartdatetime().strftime("%Y%m%d")
+    ds.StudyTime = edf_file.getStartdatetime().strftime("%H%M%S")
+    ds.PatientBirthDate = header['birthdate']
+    ds.PatientSex = header['gender']
+    ds.PatientID = header['patientcode']
+    ds.ManufacturerModelName = header['equipment']
+
+    '''
+    # Some more stuff found in the EDF header, need to find the corresponding DICOM element
     ds.technician = header['technician']
     ds.recording_additional = header['recording_additional']
-    ds.patient_name = header['patientname']
     ds.patient_additional = header['patient_additional']
-    ds.patient_code = header['patientcode']
-    ds.equipment = header['equipment']
     ds.admin_code = header['admincode']
-    ds.gender = header['gender']
-    ds.start_date_time = header['startdate']
-    ds.birthdate = header['birthdate']
+    '''
 
-    ds.local_patient_identification = edf_file.getPatientCode()
-
-    ds.study_description = "EEG Study"
-    ds.series_description = "EEG Series"
-    ds.modality = "EEG"
-    ds.manufacturer = "Mobile App"
-    ds.software_versions = "Your Software Version"
+    ds.StudyDescription = "EEG Study"
+    ds.SeriesDescription = "EEG Series"
+    ds.Manufacturer = "Mobile App"
+    ds.SoftwareVersions = "Your Software Version"
 
     # Set the EEG data as the pixel data
     ds.pixel_data = edf_file.readSignal(0)
 
-    # Add the EEG channel information
-    channel_seq = Sequence()
-    for i in range(edf_file.signals_in_file):
-        channel_item = Dataset()
-        channel_item.channel_description = edf_file.getSignalLabels()[i]
-        channel_seq.append(channel_item)
-
-    # Create a Dataset object to hold the Per-Frame Functional Groups (multi-frame image or a dynamic series)
-    per_frame_func_groups_ds = Dataset()
-    per_frame_func_groups_ds.ChannelSequence = channel_seq
-
     # Create a Sequence to hold the Per-Frame Functional Groups Dataset
-    shared_func_groups_seq = Sequence([per_frame_func_groups_ds])
+    shared_func_groups_seq = Sequence()
 
-    # Assign the Sequence to SharedFunctionalGroupsSequence
+    # Iterate over each channel in the EDF file
+    for channel_idx in range(edf_file.signals_in_file):
+        # Create a Dataset for each channel
+        channel_ds = Dataset()
+
+        # Set the channel-specific attributes
+        channel_ds.ChannelLabel = edf_file.getLabel(channel_idx)
+
+        # Create a Dataset to hold the Per-Frame Functional Groups (multi-frame image or a dynamic series)
+        per_frame_func_groups_ds = Dataset()
+        per_frame_func_groups_ds.ChannelSourceSequence = Sequence([channel_ds])
+
+        # Append the Per-Frame Functional Groups Dataset to the Sequence
+        shared_func_groups_seq.append(per_frame_func_groups_ds)
+
+    # Set the Sequence of Per-Frame Functional Groups to the DICOM object
     ds.SharedFunctionalGroupsSequence = shared_func_groups_seq
+
 
     # Routine Scalp EEG specific attributes
     ds.Modality = "EEG"
@@ -362,6 +370,7 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     # Save the DICOM object to a file with 'DICM' prefix in the header
     ds.save_as(dicom_file_path, write_like_original=False)
     print("Conversion complete.")
+
 
 
 def read_dicom_data(dicom_file_path):

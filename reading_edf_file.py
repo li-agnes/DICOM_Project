@@ -4,7 +4,7 @@ import numpy as np
 
 #This file is for playing around with pyedflib and learning how to read/write EDF files
 
-edf_file_path = "/Users/agnesli/Desktop/DICOM Project/chb01_01.edf"
+edf_file_path = "/Users/agnesli/Desktop/DICOM_Project/chb01_01.edf"
 f = pyedflib.EdfReader(edf_file_path)
 #edf_writer = pyedflib.EdfWriter(edf_file_path, 'a')
 
