@@ -1,16 +1,61 @@
-import pyedflib
-import pydicom
-from pydicom.dataset import Dataset
-from pydicom.sequence import Sequence
-from pydicom.dataset import FileDataset
-from pyedflib import highlevel
-from pydicom import uid
-from pydicom.errors import InvalidDicomError
+"""read_edfD.py:
+
+__author__ = "William Bosl"
+__copyright__ = "Copyright 2022, William J. Bosl"
+__credits__ = ["William Bosl"]
+__license__ = All rights reserved by William J. Bosl
+__version__ = "1.0.0"
+__maintainer__ = "William Bosl"
+__email__ = "william.bosl@childrens.harvard.edu"
+__status__ = "Initial submission"
+
+This file opens a discontinous EDF+D file and:
+    - identifies the time stamps for every continous segment
+    - writes out all of the header information and segment information
+    - optionally writes new EDF+C files with continuous segments
+"""
+
+import sys
 import numpy as np
+import datetime
+
+def filter_nonprintable(text):
+    import itertools
+    # Use characters of control category
+    nonprintable = itertools.chain(range(0x00,0x20),range(0x7f,0xa0))
+    # Use translate to remove all non-printable characters
+    return text.translate({character:None for character in nonprintable})
+
+# Define the EDF file structure
+def file_spec(f):
+	size = f.count('size', 'text', 2)  # A two-byte unsigned integer
+	f.bytes('text', size)  # A variable number of bytes
 
 
+#-----------------------------------------
+#
+#-----------------------------------------
+def parse_commandline(argv):
 
-### code from read_edfD.py that prints parts of the EDF
+    # Set defaults, then read inputs
+    rw = "read"
+    argc = len(argv)
+    missing_i = True
+    if "-i" in argv: missing_i = False
+    if argc < 3 or missing_i:
+        print("Usage: > python read_edfD.py -i filename.edf <-rw write or read>")
+        print("Example: > python read_edfD.py -i somefile.edf -rw read")
+        exit()
+    else:
+        for i in range(1,argc,2):
+            option = argv[i]
+            value = argv[i+1]
+            if option == '-i':  # input filename
+                filename = value
+            elif option == '-rw':
+                rw = value
+
+    return filename, rw
 
 
 #-----------------------------------------
@@ -40,9 +85,9 @@ def add_seconds(date, time, secs):
 #-----------------------------------------
 # Read the edf file and print some information
 #-----------------------------------------
-def read_edfD(edf_file_path):
+def read_edfD(filename):
     
-    print("reading data from ", edf_file_path)
+    print("reading data from ", filename)
     
     # Create a record to hold the size of the header and data 
     # records and location of continuous segments
@@ -55,7 +100,7 @@ def read_edfD(edf_file_path):
     record["nheadbytes"] = 0
 
     # Read the file and print the text field
-    file = open(edf_file_path, "rb")
+    file = open(filename, "rb")
     
     # Get header information
     version = file.read(8).decode('ascii')
@@ -243,166 +288,59 @@ def set_header(header, record):
     bheader = bytes("".join(header_list), 'utf-8')
     
     return bheader
+    
 
+#-----------------------------------------
+# Write EDF file
+#-----------------------------------------
+def write_edf(newfilename, bfile, header, iseg, record):
+    
+    ns = record["ns"]  # number of signals
+    nr_seg = record["nrecords"][iseg]
+    
+    # Open a new binary file for writing
+    file = open(newfilename, "wb")
+        
+    # Write the new header
+    new_hdr = set_header(header, record)
+    file.write(new_hdr)
+    
+    # Write the data records; each entry is 2 byte integer
+    for r in range(nr_seg):
+        for s in range(ns):
+            nsr = record["nsr"][s] 
+            nbytes = nsr * 2
+            b_data = bfile.read(nbytes)
+            file.write(b_data) 
+                       
+    file.close()
+    
 
+#-----------------------------------------
+# main driver 
+#-----------------------------------------
+if __name__ == "__main__":
 
-### converting EDF info into DICOM format
-
-
-def convert_edf_to_dicom(edf_file_path, dicom_file_path):
-    '''
-    Converts an EDF file to DICOM format by adding basic attributes.
-
-    Arguments:
-        edf_file_path (str): Path to the EDF file.
-        dicom_file_path (str): Path to save the output DICOM file.
-
-    Returns:
-        None
-    '''
-    # Open the EDF file
-    edf_file = pyedflib.EdfReader(edf_file_path)
-
-    # Create a blank DICOM object
-    ds = Dataset()
-
-    # Pull from EDF Header and set the DICOM metadata
-    header = edf_file.getHeader()
-
-    ds.technician = header['technician']
-    ds.recording_additional = header['recording_additional']
-    ds.patient_name = header['patientname']
-    ds.patient_additional = header['patient_additional']
-    ds.patient_code = header['patientcode']
-    ds.equipment = header['equipment']
-    ds.admin_code = header['admincode']
-    ds.gender = header['gender']
-    ds.start_date_time = header['startdate']
-    ds.birthdate = header['birthdate']
-
-    ds.local_patient_identification = edf_file.getPatientCode()
-
-    ds.study_description = "EEG Study"
-    ds.series_description = "EEG Series"
-    ds.modality = "EEG"
-    ds.manufacturer = "Mobile App"
-    ds.software_versions = "Your Software Version"
-
-    # Set the EEG data as the pixel data
-    ds.pixel_data = edf_file.readSignal(0)
-
-    # Add the EEG channel information
-    channel_seq = Sequence()
-    for i in range(edf_file.signals_in_file):
-        channel_item = Dataset()
-        channel_item.channel_description = edf_file.getSignalLabels()[i]
-        channel_seq.append(channel_item)
-
-    # Create a Dataset object to hold the Per-Frame Functional Groups (multi-frame image or a dynamic series)
-    per_frame_func_groups_ds = Dataset()
-    per_frame_func_groups_ds.ChannelSequence = channel_seq
-
-    # Create a Sequence to hold the Per-Frame Functional Groups Dataset
-    shared_func_groups_seq = Sequence([per_frame_func_groups_ds])
-
-    # Assign the Sequence to SharedFunctionalGroupsSequence
-    ds.SharedFunctionalGroupsSequence = shared_func_groups_seq
-
-    # Routine Scalp EEG specific attributes
-    ds.Modality = "EEG"
-    ds.WaveformBitsAllocated = 16
-    ds.WaveformSampleInterpretation = "SS"
-    ds.NumberOfWaveformChannels = len(edf_file.getSignalLabels())
-
-    # Set the required attributes in the File Meta Information Header
-    ds.file_meta = Dataset()
-    ds.file_meta.MediaStorageSOPClassUID = uid.ExplicitVRLittleEndian
-    ds.file_meta.MediaStorageSOPInstanceUID = pydicom.uid.generate_uid()
-    ds.file_meta.TransferSyntaxUID = uid.ImplicitVRLittleEndian
-
-
-    channel_source_seq = Sequence()
-    for i in range(edf_file.signals_in_file):
-        channel_source_item = Dataset()
-        # code sequence for the channel source
-        channel_source_item.channel_source_code_sequence = Sequence([
-            Dataset(
-                CodeValue="EEG Leads",
-                CodingSchemeDesignator="CID 3030",
-                CodingSchemeVersion="",
-                CodeMeaning="EEG Leads"
-            )
-        ])
-        # modifiers, which are additional specifications related to the channel source
-        channel_source_item.ChannelSourceModifiersSequence = Sequence([
-            Dataset(
-                CodeValue="Differential signal",
-                CodingSchemeDesignator="CID 3240",
-                CodingSchemeVersion="",
-                CodeMeaning="Differential signal"
-            ),
-            Dataset(
-                CodeValue="EEG Leads",
-                CodingSchemeDesignator="CID 3030",
-                CodingSchemeVersion="",
-                CodeMeaning="EEG Leads"
-            )
-        ])
-
-    # Add the Channel Source and Channel Source Modifiers to the Sequence
-    channel_source_seq.append(channel_source_item)
-
-    # Set the Channel Source and Channel Source Modifiers
-    per_frame_func_groups_ds.ChannelSourceSequence = channel_source_seq
-
-    # Set the necessary attributes for saving
-    ds.is_little_endian = True
-    ds.is_implicit_VR = True
-
-    # Save the DICOM object to a file with 'DICM' prefix in the header
-    ds.save_as(dicom_file_path, write_like_original=False)
-    print("Conversion complete.")
-
-
-def read_dicom_data(dicom_file_path):
-    '''
-    Prints parts of the metadata in the header to see if our new DICOM file works.
-
-    Arguments:
-        dicom_file_path (str): Path to the DICOM file.
-
-    Returns:
-        None
-    '''
-    # Read the DICOM file
-    ds = pydicom.dcmread(dicom_file_path)
-
-    # Access DICOM metadata
-    print(ds)
-
-
-def validate_dicom_file(dicom_file_path):
-    '''
-    Checks if the DICOM dataset conforms to the DICOM standard and verifies the 
-    integrity of the dataset structure
-
-    Arguments:
-        dicom_file_path (str): Path to the DICOM file.
-    '''
-
-    try:
-        pydicom.dcmread(dicom_file_path)
-        print("DICOM file is valid.")
-    except InvalidDicomError:
-        print("DICOM file is invalid.")
-
-
-# Testing
-edf_file_path = "/Users/agnesli/Desktop/DICOM_Project/chb01_01.edf"
-dicom_file_path = "/Users/agnesli/Desktop/DICOM_Project/chb01_01.dcm"
-
-#read_edfD(edf_file_path)
-
-convert_edf_to_dicom(edf_file_path, dicom_file_path)
-read_dicom_data(dicom_file_path)
-validate_dicom_file(dicom_file_path)
+    # Get command line input
+    infilename, rw = parse_commandline(sys.argv)
+    
+    # Read the file and figure out how many segments
+    record = read_edfD(infilename)
+    nhead = record["nhead"]
+    nsegs = record["nsegments"]
+    print("Number of continuous segments = ", nsegs)
+        
+    # Open the file again, read up until the data records    
+    print ("nsegs, rw = ", nsegs, rw)
+    if nsegs > 1 and rw=="write":
+        # Open the original EDF+D file and read the header
+        bfile = open(infilename, "rb") 
+        header = bfile.read(nhead)
+        print("\n----------------")
+        print("Writing new continuous files ...\n")
+        for i in range(nsegs):
+            newfilename = infilename[:-4] + "_" + str(i+1).zfill(2) +".edf"
+            print(newfilename, ": startdate, starttime = ", record["start"][i])
+            write_edf(newfilename, bfile, header, i, record)
+        bfile.close()
+    

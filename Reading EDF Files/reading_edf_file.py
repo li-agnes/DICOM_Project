@@ -19,7 +19,11 @@ sigbufs = np.zeros((n, f.getNSamples()[0]))
 print("Signal Buffers: ", sigbufs) # Signal buffers represent a single channel
 
 
-header = highlevel.make_header(technician="John Smith", equipment='Mobile App', patientname='Jane Doe', gender='Female', birthdate='01/02/2000')
-print("Header: ", header)
+# Get the EDF file header
+header = f.getHeader()
+
+# Print the header
+for key, value in header.items():
+    print(f"{key}: {value}")
 
 #edf_writer.close()
