@@ -26,4 +26,7 @@ header = f.getHeader()
 for key, value in header.items():
     print(f"{key}: {value}")
 
+sampling_frequency = f.getSampleFrequency(0)
+print(sampling_frequency)
+
 #edf_writer.close()

@@ -291,29 +291,48 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     ds.Manufacturer = "Mobile App"
     ds.SoftwareVersions = "Your Software Version"
 
-    # Set the EEG data as the pixel data
-    ds.pixel_data = edf_file.readSignal(0)
+    # Create a Sequence to hold the Waveform Sequence
+    waveform_sequence = Sequence()
+
+    # Create a Sequence to hold the Multi-Frame Dimension Module
+    multi_frame_ds = Dataset()
 
     # Create a Sequence to hold the Per-Frame Functional Groups Dataset
     shared_func_groups_seq = Sequence()
 
     # Iterate over each channel in the EDF file
     for channel_idx in range(edf_file.signals_in_file):
-        # Create a Dataset for each channel
-        channel_ds = Dataset()
+        # Create a Dataset for each channel's waveform
+        waveform_ds = Dataset()
 
-        # Set the channel-specific attributes
-        channel_ds.ChannelLabel = edf_file.getLabel(channel_idx)
+        # Set the waveform-specific attributes
+        waveform_ds.SamplingFrequency = edf_file.getSampleFrequency(channel_idx)
+        waveform_ds.WaveformBitsAllocated = 16
+        waveform_ds.WaveformSampleInterpretation = "SS"
 
-        # Create a Dataset to hold the Per-Frame Functional Groups (multi-frame image or a dynamic series)
+        # Set the EEG data as the waveform data
+        waveform_ds.WaveformData = edf_file.readSignal(channel_idx)
+
+        # Append the waveform Dataset to the Sequence
+        waveform_sequence.append(waveform_ds)
+
+        # Create a Dataset to hold the Per-Frame Functional Groups (multi-frame image or a dynamic series) for this channel
         per_frame_func_groups_ds = Dataset()
-        per_frame_func_groups_ds.ChannelSourceSequence = Sequence([channel_ds])
+
+        # Set the waveform Sequence to the Per-Frame Functional Groups Dataset for this channel
+        per_frame_func_groups_ds.WaveformSequence = Sequence([waveform_ds])
+
+        # Set the channel label for this channel's Per-Frame Functional Groups Dataset
+        per_frame_func_groups_ds.ChannelLabel = edf_file.getLabel(channel_idx)
 
         # Append the Per-Frame Functional Groups Dataset to the Sequence
         shared_func_groups_seq.append(per_frame_func_groups_ds)
 
     # Set the Sequence of Per-Frame Functional Groups to the DICOM object
     ds.SharedFunctionalGroupsSequence = shared_func_groups_seq
+
+    # Set the Waveform Sequence to the DICOM object
+    ds.WaveformSequence = waveform_sequence
 
 
     # Routine Scalp EEG specific attributes
