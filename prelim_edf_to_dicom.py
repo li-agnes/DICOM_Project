@@ -57,9 +57,6 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     # Create a Sequence to hold the Waveform Sequence
     waveform_sequence = Sequence()
 
-    # Create a Sequence to hold the Multi-Frame Dimension Module
-    multi_frame_ds = Dataset()
-
     # Create a Sequence to hold the Per-Frame Functional Groups Dataset
     shared_func_groups_seq = Sequence()
 
@@ -94,9 +91,6 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     # Set the Sequence of Per-Frame Functional Groups to the DICOM object
     ds.SharedFunctionalGroupsSequence = shared_func_groups_seq
 
-    # Set the Waveform Sequence to the DICOM object
-    ds.WaveformSequence = waveform_sequence
-
 
     # Routine Scalp EEG specific attributes
     ds.Modality = "EEG"
@@ -111,40 +105,6 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     ds.file_meta.TransferSyntaxUID = uid.ImplicitVRLittleEndian
 
 
-    channel_source_seq = Sequence()
-    for i in range(edf_file.signals_in_file):
-        channel_source_item = Dataset()
-        # code sequence for the channel source
-        channel_source_item.channel_source_code_sequence = Sequence([
-            Dataset(
-                CodeValue="EEG Leads",
-                CodingSchemeDesignator="CID 3030",
-                CodingSchemeVersion="",
-                CodeMeaning="EEG Leads"
-            )
-        ])
-        # modifiers, which are additional specifications related to the channel source
-        channel_source_item.ChannelSourceModifiersSequence = Sequence([
-            Dataset(
-                CodeValue="Differential signal",
-                CodingSchemeDesignator="CID 3240",
-                CodingSchemeVersion="",
-                CodeMeaning="Differential signal"
-            ),
-            Dataset(
-                CodeValue="EEG Leads",
-                CodingSchemeDesignator="CID 3030",
-                CodingSchemeVersion="",
-                CodeMeaning="EEG Leads"
-            )
-        ])
-
-    # Add the Channel Source and Channel Source Modifiers to the Sequence
-    channel_source_seq.append(channel_source_item)
-
-    # Set the Channel Source and Channel Source Modifiers
-    per_frame_func_groups_ds.ChannelSourceSequence = channel_source_seq
-
     # Set the necessary attributes for saving
     ds.is_little_endian = True
     ds.is_implicit_VR = True
@@ -157,7 +117,7 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
 
 def read_dicom_data(dicom_file_path):
     '''
-    Prints parts of the metadata in the header to see if our new DICOM file works.
+    Prints parts of the new DICOM file.
 
     Arguments:
         dicom_file_path (str): Path to the DICOM file.
