@@ -7,6 +7,7 @@ from pyedflib import highlevel
 from pydicom import uid
 from pydicom.errors import InvalidDicomError
 import numpy as np
+import sys
 
 
 ### converting EDF info into DICOM format
@@ -60,9 +61,12 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
     # Create a Sequence to hold the Per-Frame Functional Groups Dataset
     shared_func_groups_seq = Sequence()
 
+    # Create a Sequence to hold the Waveform Annotation Sequence (0040,B020)
+    waveform_annotation_sequence = Sequence()
+
     # Iterate over each channel in the EDF file
     for channel_idx in range(edf_file.signals_in_file):
-        # Create a Dataset for each channel's waveform
+        ## Create a Dataset for each channel's waveform
         waveform_ds = Dataset()
 
         # Set the waveform-specific attributes
@@ -76,7 +80,7 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
         # Append the waveform Dataset to the Sequence
         waveform_sequence.append(waveform_ds)
 
-        # Create a Dataset to hold the Per-Frame Functional Groups (multi-frame image or a dynamic series) for this channel
+        ## Create a Dataset to hold the Per-Frame Functional Groups (multi-frame image or a dynamic series) for this channel
         per_frame_func_groups_ds = Dataset()
 
         # Set the waveform Sequence to the Per-Frame Functional Groups Dataset for this channel
@@ -87,6 +91,27 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
 
         # Append the Per-Frame Functional Groups Dataset to the Sequence
         shared_func_groups_seq.append(per_frame_func_groups_ds)
+
+        ## Create a Dataset for each channel's Waveform Annotation
+        waveform_annotation_ds = Dataset()
+
+        # Set the channel label for this channel's Waveform Annotation Dataset
+        waveform_annotation_ds.ChannelLabel = edf_file.getLabel(channel_idx)
+
+        # Add the Concept Code Sequence (0040,A043) to the Waveform Annotation Dataset
+        concept_code_sequence = Sequence()
+        for cid in [3035, 3038, 3039, 3040]:
+            item = Dataset()
+            item.CodeValue = str(cid)
+            item.CodingSchemeDesignator = "CID"
+            item.CodeMeaning = "Concept Name"  # Replace with the appropriate name for each CID
+            concept_code_sequence.append(item)
+
+        waveform_annotation_ds.ConceptCodeSequence = concept_code_sequence
+
+        # Append the Waveform Annotation Dataset to the Waveform Annotation Sequence
+        waveform_annotation_sequence.append(waveform_annotation_ds)
+
 
     # Set the Sequence of Per-Frame Functional Groups to the DICOM object
     ds.SharedFunctionalGroupsSequence = shared_func_groups_seq
@@ -148,12 +173,14 @@ def validate_dicom_file(dicom_file_path):
         print("DICOM file is invalid.")
 
 
-# Testing
-edf_file_path = "/Users/agnesli/Desktop/DICOM_Project/chb01_01.edf"
-dicom_file_path = "/Users/agnesli/Desktop/DICOM_Project/chb01_01.dcm"
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python script_name.py input.edf")
+        sys.exit(1)
 
-#read_edfD(edf_file_path)
+    edf_file_path = sys.argv[1]
+    dicom_file_path = edf_file_path.replace(".edf", ".dcm")
 
-convert_edf_to_dicom(edf_file_path, dicom_file_path)
-read_dicom_data(dicom_file_path)
-validate_dicom_file(dicom_file_path)
+    convert_edf_to_dicom(edf_file_path, dicom_file_path)
+    read_dicom_data(dicom_file_path)
+    validate_dicom_file(dicom_file_path)
