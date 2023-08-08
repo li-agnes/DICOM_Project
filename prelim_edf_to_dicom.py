@@ -89,6 +89,13 @@ def convert_edf_to_dicom(edf_file_path, dicom_file_path):
         # Set the channel label for this channel's Per-Frame Functional Groups Dataset
         per_frame_func_groups_ds.ChannelLabel = edf_file.getLabel(channel_idx)
 
+        # Set the units or physical dimension
+        per_frame_func_groups_ds.ChannelDerivationDescription = edf_file.getPhysicalDimension(channel_idx)
+
+        # Set the range of physical values (volts)
+        #per_frame_func_groups_ds.ChannelMinimumValue = edf_file.getPhysicalMinimum(channel_idx)
+        #per_frame_func_groups_ds.ChannelMaximumValue = edf_file.getPhysicalMaximum(channel_idx)
+
         # Append the Per-Frame Functional Groups Dataset to the Sequence
         shared_func_groups_seq.append(per_frame_func_groups_ds)
 
