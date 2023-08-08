@@ -6,46 +6,29 @@ The script utilizes the pyedflib and pydicom libraries to perform the conversion
 
 The EDF to DICOM converter showcased in this script holds the potential to reshape neurophysiology practices by seamlessly translating data from the EDF format to the established DICOM standard. This conversion not only streamlines the integration of neurophysiological data into medical imaging and healthcare systems, enhancing clinical diagnosis and patient care, but also fosters collaborative research endeavors by enabling standardized data exchange across institutions.
 
-## Requirements
+## Installation
 
 **Install python3 in your system.**
 For MacOS, follow this link https://docs.python-guide.org/starting/install3/osx/
 
-**create virtual environment in the cloned directory **
+**Create a virtual environment in the cloned directory using your terminal.**
 
 ```
 $ cd /path/to/<clonedDirectory>
 $ python3 -m venv venv
 ```
-* start the virtual environment
+**Start the virtual environment.**
 ```
 $ source venv/bin/activate
 ```
-* install the required packages
+**Install the required packages.**
 ```
 $ pip3 install -r requirements.txt
 ```
 
-Before using this script, ensure that you have the following Python libraries installed:
+## Run
 
-- **pyedflib**
-- **pydicom**
-
-You can install these libraries using the following commands:
-
-```
-pip install pyedflib
-pip install pydicom
-```
-
-## Usage
-
-To convert an EDF file to a DICOM file, follow these steps:
-
-Save the script in a file (edf_to_dicom.py).
-Open a terminal or command prompt.
-Navigate to the directory containing the script and the EDF file.
-Run the script with the EDF file as the argument:
+Run the script with the EDF file saved in the same directory as the argument:
 
 `python edf_to_dicom.py input.edf`
 
