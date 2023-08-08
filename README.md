@@ -1,10 +1,30 @@
 # EDF to DICOM Converter
 
-This script is designed to convert EDF (European Data Format) files, commonly used for storing physiological signals such as EEG (Electroencephalogram) data, into DICOM (Digital Imaging and Communications in Medicine) files. The script utilizes the pyedflib and pydicom libraries to perform the conversion and generate the necessary DICOM attributes.
+This script is designed to convert EDF (European Data Format) files, commonly used for storing physiological signals such as EEG (Electroencephalogram) data, into DICOM (Digital Imaging and Communications in Medicine) files. [DICOM](https://www.dicomstandard.org/) is the international standard for medical images and related information. It defines the formats for medical images that can be exchanged with the data and quality necessary for clinical use. 
+
+The script utilizes the pyedflib and pydicom libraries to perform the conversion and generate the necessary DICOM attributes.
 
 The EDF to DICOM converter showcased in this script holds the potential to reshape neurophysiology practices by seamlessly translating data from the EDF format to the established DICOM standard. This conversion not only streamlines the integration of neurophysiological data into medical imaging and healthcare systems, enhancing clinical diagnosis and patient care, but also fosters collaborative research endeavors by enabling standardized data exchange across institutions.
 
 ## Requirements
+
+**Install python3 in your system.**
+For MacOS, follow this link https://docs.python-guide.org/starting/install3/osx/
+
+**create virtual environment in the cloned directory **
+
+```
+$ cd /path/to/<clonedDirectory>
+$ python3 -m venv venv
+```
+* start the virtual environment
+```
+$ source venv/bin/activate
+```
+* install the required packages
+```
+$ pip3 install -r requirements.txt
+```
 
 Before using this script, ensure that you have the following Python libraries installed:
 
@@ -13,8 +33,10 @@ Before using this script, ensure that you have the following Python libraries in
 
 You can install these libraries using the following commands:
 
-`pip install pyedflib`
-`pip install pydicom`
+```
+pip install pyedflib
+pip install pydicom
+```
 
 ## Usage
 
