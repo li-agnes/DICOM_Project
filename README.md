@@ -2,6 +2,8 @@
 
 This script is designed to convert EDF (European Data Format) files, commonly used for storing physiological signals such as EEG (Electroencephalogram) data, into DICOM (Digital Imaging and Communications in Medicine) files. The script utilizes the pyedflib and pydicom libraries to perform the conversion and generate the necessary DICOM attributes.
 
+The EDF to DICOM converter showcased in this script holds the potential to reshape neurophysiology practices by seamlessly translating data from the EDF format to the established DICOM standard. This conversion not only streamlines the integration of neurophysiological data into medical imaging and healthcare systems, enhancing clinical diagnosis and patient care, but also fosters collaborative research endeavors by enabling standardized data exchange across institutions.
+
 ## Requirements
 
 Before using this script, ensure that you have the following Python libraries installed:
