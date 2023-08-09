@@ -28,9 +28,11 @@ $ pip3 install -r requirements.txt
 
 ## Run
 
-Run the script with the EDF file saved in the same directory as the argument:
+After starting the virtual environment, run the script with the EDF file saved in the same directory as the argument:
 
-`python edf_to_dicom.py input.edf`
+```
+$ python edf_to_dicom.py input.edf
+```
 
 Replace input.edf with the path to your EDF file. The script will generate a corresponding DICOM file with the same base name in the same directory.
 
